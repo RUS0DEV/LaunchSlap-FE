@@ -16,38 +16,91 @@ type RawProjectListResponse =
   | {
       data?: Project[];
       items?: Project[];
+      pagination?: {
+        total?: number;
+        page?: number;
+        limit?: number;
+      };
       total?: number;
       page?: number;
       limit?: number;
     };
+
+type RawProject = Project & {
+  userId?: string;
+  user?: { email?: string };
+  imageUrl?: string | null;
+  isHidden?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  promotions?: Project['active_promotion'][];
+};
+
+type RawProjectEnvelope =
+  | Project
+  | RawProject
+  | { project?: Project | RawProject };
+
+export const normalizeProject = (response: RawProjectEnvelope): Project => {
+  const project =
+    'project' in response && response.project ? response.project : response;
+  const raw = project as RawProject;
+  const activePromotion = raw.active_promotion ?? raw.promotions?.[0] ?? null;
+
+  return {
+    ...raw,
+    user_id: raw.user_id ?? raw.userId ?? '',
+    user_email: raw.user_email ?? raw.user?.email,
+    image_url: raw.image_url ?? raw.imageUrl ?? '',
+    is_hidden: raw.is_hidden ?? raw.isHidden ?? false,
+    created_at: raw.created_at ?? raw.createdAt ?? '',
+    updated_at: raw.updated_at ?? raw.updatedAt ?? '',
+    is_featured: raw.is_featured ?? Boolean(activePromotion),
+    active_promotion: activePromotion,
+  };
+};
+
+const normalizeProjectArray = (projects: (Project | RawProject)[]) =>
+  projects.map((project) => normalizeProject(project));
 
 const normalizeProjectList = (
   response: RawProjectListResponse,
   params: ProjectListParams | void,
 ): ProjectListResponse => {
   if (Array.isArray(response)) {
+    const items = normalizeProjectArray(response);
+
     return {
-      items: response,
-      total: response.length,
+      items,
+      total: items.length,
       page: params?.page || 1,
       limit: params?.limit || env.defaultPageLimit,
     };
   }
 
   const normalized = response as {
-    items?: Project[];
-    data?: Project[];
+    items?: (Project | RawProject)[];
+    data?: (Project | RawProject)[];
+    pagination?: {
+      total?: number;
+      page?: number;
+      limit?: number;
+    };
     total?: number;
     page?: number;
     limit?: number;
   };
-  const items = normalized.items || normalized.data || [];
+  const items = normalizeProjectArray(normalized.items || normalized.data || []);
 
   return {
     items,
-    total: normalized.total ?? items.length,
-    page: normalized.page ?? params?.page ?? 1,
-    limit: normalized.limit ?? params?.limit ?? env.defaultPageLimit,
+    total: normalized.total ?? normalized.pagination?.total ?? items.length,
+    page: normalized.page ?? normalized.pagination?.page ?? params?.page ?? 1,
+    limit:
+      normalized.limit ??
+      normalized.pagination?.limit ??
+      params?.limit ??
+      env.defaultPageLimit,
   };
 };
 
@@ -78,6 +131,7 @@ export const projectsApi = baseApi.injectEndpoints({
     }),
     getProjectById: builder.query<Project, string>({
       query: (id) => `/projects/${id}`,
+      transformResponse: normalizeProject,
       providesTags: (_result, _error, id) => [{ type: 'Project', id }],
     }),
     createProject: builder.mutation<Project, CreateProjectDto>({
@@ -86,6 +140,7 @@ export const projectsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
+      transformResponse: normalizeProject,
       invalidatesTags: [
         { type: 'Project', id: 'LIST' },
         { type: 'UserProject', id: 'LIST' },
@@ -97,6 +152,7 @@ export const projectsApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
+      transformResponse: normalizeProject,
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Project', id },
         { type: 'Project', id: 'LIST' },
@@ -124,6 +180,10 @@ export const projectsApi = baseApi.injectEndpoints({
           body,
         };
       },
+      transformResponse: (response: RawProjectEnvelope) => {
+        const project = normalizeProject(response);
+        return { image_url: project.image_url };
+      },
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: 'Project', id: projectId },
         { type: 'UserProject', id: 'LIST' },
@@ -131,6 +191,12 @@ export const projectsApi = baseApi.injectEndpoints({
     }),
     getUserProjects: builder.query<Project[], void>({
       query: () => '/user/projects',
+      transformResponse: (
+        response: Project[] | { data?: (Project | RawProject)[] },
+      ) =>
+        normalizeProjectArray(
+          Array.isArray(response) ? response : response.data || [],
+        ),
       providesTags: (result) =>
         result
           ? [

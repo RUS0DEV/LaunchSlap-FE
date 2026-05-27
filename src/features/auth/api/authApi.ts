@@ -26,6 +26,25 @@ export interface AuthResponse {
   user?: User;
 }
 
+type UserEnvelope = User | { user?: User };
+type AuthEnvelope =
+  | AuthResponse
+  | { token?: string; access_token?: string; user?: UserEnvelope };
+
+const normalizeUser = (response: UserEnvelope): User => {
+  if ('user' in response && response.user) {
+    return response.user;
+  }
+
+  return response as User;
+};
+
+const normalizeAuthResponse = (response: AuthEnvelope): AuthResponse => ({
+  token: response.token,
+  access_token: response.access_token,
+  user: response.user ? normalizeUser(response.user) : undefined,
+});
+
 export const getAuthToken = (response: AuthResponse) =>
   response.token || response.access_token || '';
 
@@ -37,6 +56,7 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
+      transformResponse: normalizeAuthResponse,
     }),
     login: builder.mutation<AuthResponse, LoginDto>({
       query: (body) => ({
@@ -44,6 +64,7 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
+      transformResponse: normalizeAuthResponse,
       invalidatesTags: ['Auth'],
     }),
     logout: builder.mutation<void, void>({
@@ -72,6 +93,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
     getMe: builder.query<User, void>({
       query: () => '/auth/me',
+      transformResponse: normalizeUser,
       providesTags: ['Auth'],
     }),
   }),

@@ -3,9 +3,12 @@ import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import type { Project, ProjectCategory } from '@/entities/project/model/types';
+import type { Project } from '@/entities/project/model/types';
 import { ImageUploader } from '@/features/projects/ui/ImageUploader';
-import { categoryOptions } from '@/shared/constants/categories';
+import {
+  categoryOptions,
+  normalizeProjectCategory,
+} from '@/shared/constants/categories';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Select } from '@/shared/ui/Select';
@@ -25,11 +28,12 @@ const projectSchema = z.object({
     .min(1, 'Укажите ссылку на проект')
     .url('Введите корректный URL'),
   category: z.enum([
-    'tools',
-    'games',
-    'bots',
-    'web_services',
-    'api_libraries',
+    'saas',
+    'web_app',
+    'mobile_app',
+    'ai_tool',
+    'ecommerce',
+    'education',
     'other',
   ]),
   tags: z.array(z.string()).max(5, 'Можно указать максимум 5 тегов').optional(),
@@ -53,6 +57,9 @@ export function ProjectForm({
   isSubmitting,
   onSubmit,
 }: ProjectFormProps) {
+  const initialCategory = initialValues?.category
+    ? normalizeProjectCategory(initialValues.category)
+    : 'ai_tool';
   const [tagDraft, setTagDraft] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const {
@@ -68,7 +75,7 @@ export function ProjectForm({
       name: initialValues?.name || '',
       description: initialValues?.description || '',
       url: initialValues?.url || '',
-      category: (initialValues?.category as ProjectCategory) || 'tools',
+      category: initialCategory,
       tags: initialValues?.tags || [],
       contact: initialValues?.contact || '',
     },
@@ -79,7 +86,9 @@ export function ProjectForm({
       name: initialValues?.name || '',
       description: initialValues?.description || '',
       url: initialValues?.url || '',
-      category: (initialValues?.category as ProjectCategory) || 'tools',
+      category: initialValues?.category
+        ? normalizeProjectCategory(initialValues.category)
+        : 'ai_tool',
       tags: initialValues?.tags || [],
       contact: initialValues?.contact || '',
     });

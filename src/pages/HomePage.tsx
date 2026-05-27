@@ -3,6 +3,7 @@ import type { ProjectCategory } from '@/entities/project/model/types';
 import { useGetProjectsQuery } from '@/features/projects/api/projectsApi';
 import { ProjectFilters } from '@/features/projects/ui/ProjectFilters';
 import { env } from '@/shared/config/env';
+import { normalizeProjectCategory } from '@/shared/constants/categories';
 import { getApiErrorMessage } from '@/shared/lib/apiError';
 import { usePageTitle } from '@/shared/lib/pageTitle';
 import { Button } from '@/shared/ui/Button';
@@ -23,7 +24,8 @@ export default function HomePage() {
   usePageTitle('Каталог проектов');
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page') || 1);
-  const category = searchParams.get('category') || '';
+  const rawCategory = searchParams.get('category') || '';
+  const category = rawCategory ? normalizeProjectCategory(rawCategory) : '';
   const tags = parseTags(searchParams.get('tags'));
 
   const { data, isLoading, isFetching, error, refetch } = useGetProjectsQuery({

@@ -1,11 +1,12 @@
 import type { Promotion } from '@/entities/promotion/model/types';
 
 export type ProjectCategory =
-  | 'tools'
-  | 'games'
-  | 'bots'
-  | 'web_services'
-  | 'api_libraries'
+  | 'saas'
+  | 'web_app'
+  | 'mobile_app'
+  | 'ai_tool'
+  | 'ecommerce'
+  | 'education'
   | 'other';
 
 export interface Project {

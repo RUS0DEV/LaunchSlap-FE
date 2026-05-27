@@ -1,22 +1,29 @@
 import type { ProjectCategory } from '@/entities/project/model/types';
 
 export const categoryLabels: Record<ProjectCategory, string> = {
-  tools: 'Инструменты',
-  games: 'Игры',
-  bots: 'Боты',
-  web_services: 'Веб-сервисы',
-  api_libraries: 'API / библиотеки',
+  saas: 'SaaS',
+  web_app: 'Веб-приложение',
+  mobile_app: 'Мобильное приложение',
+  ai_tool: 'Инструменты',
+  ecommerce: 'E-commerce',
+  education: 'Образование',
   other: 'Прочее',
 };
 
 const ruCategoryMap: Record<string, ProjectCategory> = {
-  инструменты: 'tools',
-  игры: 'games',
-  боты: 'bots',
-  'веб-сервисы': 'web_services',
-  веб_сервисы: 'web_services',
-  'api / библиотеки': 'api_libraries',
-  'api библиотеки': 'api_libraries',
+  tools: 'ai_tool',
+  games: 'web_app',
+  bots: 'ai_tool',
+  web_services: 'web_app',
+  api_libraries: 'saas',
+  инструменты: 'ai_tool',
+  игры: 'web_app',
+  боты: 'ai_tool',
+  'веб-сервисы': 'web_app',
+  веб_сервисы: 'web_app',
+  'api / библиотеки': 'saas',
+  'api библиотеки': 'saas',
+  образование: 'education',
   прочее: 'other',
 };
 
